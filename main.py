@@ -1,8 +1,7 @@
 import csv
 import os
-
 import pandas as pd
-
+from time import sleep
 
 class User:
     def __init__(self, name, password,balance=None):
@@ -10,6 +9,7 @@ class User:
         self.password = password
         self.balance = balance
         self.transactions = []
+
     @staticmethod
     def add_transaction(name,amount,transaction_type):
         users_df = pd.read_csv('users.csv')
@@ -21,23 +21,21 @@ class User:
         print(f"Your Balance Before: ${before_balance}")
 
         if transaction_type == 'deposit':
-
              new_balance = before_balance + amount
 
              users_df.loc[index_user,'balance'] = new_balance
              users_df.to_csv('users.csv',index=False)
 
 
-             new_row = [name,before_balance,new_balance,amount,transaction_type]
+             new_row = [name,before_balance,new_balance,amount,transaction_type,'N/A']
 
              transaction_df.loc[len(transaction_df)] = new_row
+
              transaction_df.to_csv('transactions.csv',index=False)
 
 
              print(f'The user {name} has deposited ${amount} from their account. Remaining balance:${new_balance}\n')
-
              return
-
         elif transaction_type == 'withdrawal':
             if amount > before_balance:
                     print("Insufficient Balance\n")
@@ -46,7 +44,7 @@ class User:
                     new_balance = before_balance - amount
 
                     users_df.loc[index_user,'balance'] = new_balance
-                    new_row = [name,before_balance,new_balance,amount,transaction_type]
+                    new_row = [name,before_balance,new_balance,amount,transaction_type,'N/A']
 
 
                     transaction_df.loc[len(transaction_df)] = new_row
@@ -57,7 +55,7 @@ class User:
                     print(f'The user {name} has withdrawn ${amount} from their account. Remaining balance:${new_balance}\n')
 
                     return
-         elif transactions_type == 'transfer':
+        elif transaction_type == 'transfer':
             if amount > before_balance:
                     print("Insufficient Balance\n")
                     return
@@ -67,13 +65,41 @@ class User:
                     print("This user does not exist!")
                     return
                 else:
-                    friend_df = users_df
+                    friend_index = int(users_df[users_df['user']== to_username].index.values)
+                    friend_balance = users_df.loc[friend_index,'balance']
+                    friend_balance = friend_balance + amount
 
+                    new_balance = before_balance - amount
+
+                    new_row = [name,before_balance,new_balance,amount,transaction_type,to_username]
+                    transaction_df.loc[len(transaction_df)] = new_row
+
+                    users_df.loc[index_user,'balance'] = new_balance
+                    users_df.loc[friend_index,'balance'] = friend_balance
+
+                    print(f'User: {name} has transferred ${amount} to {to_username}. Your remaining balance is: ${new_balance}\n')
+
+                    users_df.to_csv('users.csv',index=False)
+                    transaction_df.to_csv('transactions.csv',index=False)
+
+                    return
+
+    @staticmethod
+
+    def view_personal_transactions(name):
+        transactions_df = pd.read_csv('transactions.csv')
+        check_df = transactions_df[transactions_df['user']== name]
+
+        if check_df.empty:
+            print("The User has not made any transactions!")
+        else:
+            user_transactions = transactions_df.loc[transactions_df['user'] == name]
+            print(user_transactions)
+        transactions_df.to_csv('transactions.csv',index=False)
 
     @staticmethod
     def login(name,password):
         df = pd.read_csv('users.csv')
-
         if name in df['user'].values and int(password) in df['password'].values:
             print("User Login Successfully!")
             return True
@@ -98,6 +124,7 @@ class Admin:
         if check_df.empty:
             users_df.loc[len(users_df)] = new_row
             users_df.to_csv('users.csv',index=False)
+
             print(f"New User {name} has been created!\n")
         else:
             print("Username already in use! Enter a different one: ")
@@ -105,17 +132,15 @@ class Admin:
 
     @staticmethod
     def update_user(name, password):
+
         User.password = password
-        with open('users.csv', mode='r') as file:
-            reader = csv.reader(file)
-            users = list(reader)
-        with open('users.csv', mode='w', newline='') as file:
-            writer = csv.writer(file)
-            for user in users:
-                if user[0] == name:
-                    writer.writerow([name, password])
-                else:
-                    writer.writerow(user)
+
+        users_df = pd.read_csv('users.csv')
+        index_user = int(users_df[users_df['user']==name].index.values)
+
+        users_df.loc[index_user,'password'] = password
+        print('Password Updated!')
+        users_df.to_csv('users.csv',index=False)
 
 
     @staticmethod
@@ -182,17 +207,15 @@ class Admin:
     @staticmethod
     def update_admin(name,password):
 
-        with open('admins.csv', mode='a',newline='') as file:
-            writer = csv.writer(file)
-            with open('admins.csv',mode='r',newline='') as file:
-                reader =  csv.reader(file)
-                for admin in reader:
-                       if admin[0] == name:
-                        writer.writerow([name, password])
-                        print("Admin Details have been Updated!\n")
-                        return
+        Admin.password = password
+        admins_df = pd.read_csv('admins.csv')
 
-                print("Admin not found!\n")
+        index_admin = int(admins_df[admins_df['username']== name].index.values)
+
+
+        admins_df.loc[index_admin,'password'] = password
+        print('Admin Password Updated!')
+        admins_df.to_csv('admins.csv',index=False)
 
 
     @staticmethod
@@ -230,32 +253,37 @@ class Transaction:
         self.transaction_type = transaction_type
 
 def clear():
-   os.system("cls" if os.name == "nt" else "clear")
-
-
-
+    return os.system('clear')
 
 def menu():
     print("\n\n--------ATM--------\n\n")
     while True:
-        user_option = input(print("|| Press 1 for Admin || Press 2 for User ||\n"))
+        user_option = input(print("|| Press 1 for Admin || Press 2 for User ||\n      || Press 3 to Exit! ||\n"))
         match user_option:
             case '1':
                 clear()
                 admin_panel()
 
+
             case '2':
+                clear()
                 username, password = input("Enter your Username and Password: ").split()
                 if User.login(username, password):
                  user_panel(username)
+            case '3':
+                clear()
+                print("Thank you for your time!\n")
+
 
 
 def admin_panel():
+    clear()
     admin_name, admin_pass = input(print("Enter Admin Username and Password: ")).split()
     if Admin.check_admin(admin_name, admin_pass):
+            clear()
             while True:
                 admin_choice = input(
-                    " || Press 1 to View all Admins || Press 2 to Delete an Admin ||\n || Press 3 to Update an Admin || Press 4 to Create an Admin || \n || Press 5 for Admins' User Panel     || Press 6 for Transaction Panel ||  Press 6 to log out       ||\n")
+                    " || Press 1 to View all Admins || Press 2 to Delete an Admin ||\n || Press 3 to Update an Admin || Press 4 to Create an Admin || \n || Press 5 for Admins' User Panel || Press 6 for Transaction Panel || Press 7 to log out ||\n")
                 match admin_choice:
                      case '1':
                        Admin.view_admins()
@@ -286,7 +314,7 @@ def admin_panel():
 def admins_user_panel():
     while True:
         admin_user_choice = input(
-            " || Press 1 to Create a User || Press 2 to Delete a User||\n || Press 3 to Update a User || Press 4 to View the Users || \n || Press 5 to leave        ||\n")
+            " || Press 1 to Create a User || Press 2 to Delete a User||\n || Press 3 to Update a User || Press 4 to View the Users || \n || Press 5 to return ||\n")
         match admin_user_choice:
             case '1':
                 user_name, user_password = input("Enter the new Users' name and password: ").split()
@@ -298,29 +326,33 @@ def admins_user_panel():
                 user_name, user_password = input("Enter the username and password to be updated: ").split()
                 Admin.update_admin(user_name, user_password)
             case '4':
-                user_search_choice = input(
-                    "Do you want to view all users or a specific user? [Press 1 for All users and 2 for Specific User] \n")
+                user_search_choice = input("Do you want to view all users or a specific user? [Press 1 for All users or 2 for Specific User] \n")
                 if user_search_choice == '1':
                     Admin.view_users()
                 elif user_search_choice == '2':
                     username = input("Enter the username to be searched: ")
                     Admin.search_user(username)
+                else:
+                    print("Incorrect Input! Try Again!")
+                    return
             case '5':
-                break
+                return
 def user_panel(username):
                  while True:
-                  user_choice = input("|| Press 1 to view your details || Press 2 to View/Make Transactions || Press 3 to Change your password ||\n")
+                  user_choice = input("|| Press 1 to view your details || Press 2 to View/Make Transactions || Press 3 to Change your password ||\n|| Press 4 to Log Out ||\n")
                   if user_choice == '1':
                     Admin.search_user(username)
-                  if user_choice == '2':
+                  elif user_choice == '2':
                     transactions_panel('user')
-                  if user_choice == '3':
-                    username_change,user_password_change = input("Enter the username and password to be changed: ").split()
-                    Admin.update_user(username_change,user_password_change)
+                  elif user_choice == '3':
+                    user_password_change = input("Enter the new password to be changed: ")
+                    Admin.update_user(username,user_password_change)
+                  elif user_choice == '4':
+                    return
 def transactions_panel(check):
     match check:
         case 'admin':
-            admin_transaction_choice = input(" || Press 1 to view all transactions || Press 2 to delete all transactions ||  Press 3 to view specific transactions || \n")
+            admin_transaction_choice = input("|| Press 1 to view all transactions || Press 2 to delete all transactions || Press 3 to view specific transactions ||\n|| Press 4 to return ||")
             if admin_transaction_choice == '1':
                 Admin.view_all_transactions()
             elif admin_transaction_choice == '2':
@@ -328,22 +360,33 @@ def transactions_panel(check):
             elif admin_transaction_choice == '3':
                 username = input("Enter the username whose transactions you wish to search: ")
                 print(username.User.view_transactions())
+            elif admin_transaction_choice == '4':
+                return
 
         case 'user':
-            user_transaction_choice = input("|| Press 1 to deposit money || Press 2 to withdraw money || Press 3 to view transactions || \n")
+            user_transaction_choice = input("|| Press 1 to deposit money || Press 2 to withdraw money || Press 3 to Transfer Funds to another user || Press 4 to view transactions || Press 5 to return ||\n")
             if user_transaction_choice == '1':
                 deposit = int(input("Enter the amount to be deposited: "))
                 username_deposit = input("Enter your username to confirm: ")
                 User.add_transaction(username_deposit,deposit,'deposit')
-
-            if user_transaction_choice == '2':
+                return
+            elif user_transaction_choice == '2':
                 withdrawal = int(input("Enter the amount to be withdrawn: "))
                 username_withdrawal = input("Enter your username again to confirm: ")
                 User.add_transaction(username_withdrawal,withdrawal,'withdrawal')
-            if user_transaction_choice == '3':
+                return
+            elif user_transaction_choice == '3':
                 transfer = int(input("Enter the amount you wish to transfer: "))
                 from_username = input("Enter your username to confirm: ")
                 User.add_transaction(from_username,transfer,'transfer')
+                return
+            elif user_transaction_choice == '4':
+                username = input("Enter your username to confirm: ")
+                User.view_personal_transactions(username)
+                return
+            elif user_transaction_choice == '5':
+                return
+
 
 
 menu()
