@@ -1,7 +1,6 @@
 import csv
 import os
 import pandas as pd
-from time import sleep
 
 class User:
     def __init__(self, name, password,balance=None):
@@ -184,7 +183,27 @@ class Admin:
 
     @staticmethod
     def delete_transactions():
-        open('transactions.csv', mode='w').close()
+        transactions_df = pd.read_csv('transactions.csv')
+
+        if transactions_df.empty:
+            print("No Transactions to delete!\n")
+        else:
+            transactions_df= transactions_df.iloc[0:0]
+            transactions_df.to_csv('transactions.csv',index=False)
+            print("All Transactions have been removed!\n")
+
+
+    @staticmethod
+    def delete_user_transactions(username):
+        with open('transactions.csv',mode='r') as file:
+            reader = csv.reader(file)
+            users = list(reader)
+        with open('transactions.csv',mode='w',newline='') as file:
+            writer = csv.writer(file)
+            for user in users:
+                if user[0] != username:
+                    writer.writerow(user)
+        print(f"The Transactions of user: {username} have been deleted!\n")
 
     @staticmethod
     def create_admin(name, password):
@@ -263,130 +282,322 @@ def menu():
             case '1':
                 clear()
                 admin_panel()
-
-
             case '2':
                 clear()
-                username, password = input("Enter your Username and Password: ").split()
-                if User.login(username, password):
-                 user_panel(username)
+                try:
+                    username, password = input("Enter your Username and Password: ").split()
+                except ValueError:
+                    clear()
+                    print("You Entered Information in Wrong Format! Try Again!\n")
+                except TypeError:
+                    clear()
+                    print("You Did Not Enter Information\n")
+                else:
+                    if User.login(username, password):
+                        clear()
+                        user_panel(username)
             case '3':
                 clear()
                 print("Thank you for your time!\n")
+                break
+            case _:
+                clear()
+                print("Incorrect Input! Try Again")
+                continue
 
 
 
 def admin_panel():
     clear()
-    admin_name, admin_pass = input(print("Enter Admin Username and Password: ")).split()
-    if Admin.check_admin(admin_name, admin_pass):
+    try:
+        admin_name, admin_pass = input(print("Enter Admin Username and Password: ")).split()
+    except ValueError:
+        clear()
+        print("Please Enter Username and Password In Given Format!\n")
+    else:
+        if Admin.check_admin(admin_name, admin_pass):
             clear()
             while True:
-                admin_choice = input(
-                    " || Press 1 to View all Admins || Press 2 to Delete an Admin ||\n || Press 3 to Update an Admin || Press 4 to Create an Admin || \n || Press 5 for Admins' User Panel || Press 6 for Transaction Panel || Press 7 to log out ||\n")
+                admin_choice = input(" || Press 1 to View all Admins || Press 2 to Delete an Admin ||\n || Press 3 to Update an Admin || Press 4 to Create an Admin || \n || Press 5 for Admins' User Panel || Press 6 for Transaction Panel || Press 7 to log out ||\n")
                 match admin_choice:
                      case '1':
-                       Admin.view_admins()
+                        clear()
+                        Admin.view_admins()
                      case '2':
-                       admin_name_delete,admin_pass_delete = input("Enter the name and password of the admin to delete: ").split()
-                       if Admin.check_admin(admin_name_delete,admin_pass_delete):
-                        Admin.delete_admin(admin_name_delete)
-                        print(f"Admin {admin_name_delete} has been deleted \n")
-                       else:
-                        print("No such Admin exists in the Database\n")
+                        clear()
+                        Admin.view_admins()
+                        print("\n")
+                        try:
+                            admin_name_delete,admin_pass_delete = input("Enter the name and password of the admin to delete: ").split()
+                            if not admin_name_delete or not admin_pass_delete:
+                                raise ValueError
+                            if admin_name_delete.isdigit():
+                                raise TypeError
+                        except ValueError:
+                            clear()
+                            print("You did not enter an admins' username or password\n")
+                        except TypeError:
+                            clear()
+                            print("You did not enter an admins username or password in correct format!\n")
+                        else:
+                            if Admin.check_admin(admin_name_delete,admin_pass_delete):
+                                clear()
+                                Admin.delete_admin(admin_name_delete)
+                                print(f"Admin {admin_name_delete} has been deleted \n")
+                            else:
+                                clear()
+                                print("No such Admin exists in the Database\n")
 
                      case '3':
+                         clear()
                          admin_update_name = input("Enter the name of the admin to be updated: ")
                          admin_update_pass = input("Enter the new password to be added: ")
                          Admin.update_admin(admin_update_name, admin_update_pass)
-
                      case '4':
-                         admin_create_name, admin_create_password = input("Enter the new Admins Name and Password: ").split()
-                         Admin.create_admin(admin_create_name,admin_create_password)
+                        clear()
+                        admin_create_name, admin_create_password = input("Enter the new Admins Name and Password: ").split()
+                        Admin.create_admin(admin_create_name,admin_create_password)
                      case '5':
-                          admins_user_panel()
-
+                        clear()
+                        admins_user_panel()
                      case '6':
-                          transactions_panel('admin')
+                        clear()
+                        transactions_panel('admin')
                      case '7':
-                         break
+                        clear()
+                        break
+                     case _:
+                        clear()
+                        print("Incorrect Input! Try Again!\n")
+                        continue
 
 def admins_user_panel():
+    clear()
     while True:
         admin_user_choice = input(
             " || Press 1 to Create a User || Press 2 to Delete a User||\n || Press 3 to Update a User || Press 4 to View the Users || \n || Press 5 to return ||\n")
         match admin_user_choice:
             case '1':
-                user_name, user_password = input("Enter the new Users' name and password: ").split()
-                Admin.create_user(user_name, user_password)
+                clear()
+                try:
+                    user_name, user_password = input("Enter the new Users' name and password: ").split()
+                    if not user_name or not user_password:
+                        raise ValueError
+                except ValueError:
+                    clear()
+                    print("Please Enter Username and Password In Given Format!\n")
+                except TypeError:
+                    clear()
+                    print("Please Enter Username and Password!\n")
+                else:
+                    Admin.create_user(user_name, user_password)
             case '2':
-                user_name = input("Enter the username to be deleted: ")
-                Admin.delete_user(user_name)
+                clear()
+                try:
+                    user_name = input("Enter the username to be deleted: ")
+                    if not user_name or user_name.isdigit():
+                        raise ValueError
+                except ValueError:
+                    clear()
+                    print("Please Enter In Given Format!\n")
+                except TypeError:
+                    clear()
+                    print("Please Enter a Username\n")
+                else:
+                    Admin.delete_user(user_name)
             case '3':
-                user_name, user_password = input("Enter the username and password to be updated: ").split()
-                Admin.update_admin(user_name, user_password)
+                clear()
+                try:
+                    user_name, user_password = input("Enter the username and their new password to be updated: ").split()
+                    if not user_name or not user_password:
+                        raise ValueError
+                    if user_name.isdigit:
+                        raise TypeError
+                except ValueError:
+                    print("You did not enter a username or password!\n")
+                except TypeError:
+                    print("You entered a username or password incorrect format!\n")
+                else:
+                    Admin.update_user(user_name, user_password)
+
             case '4':
+                clear()
                 user_search_choice = input("Do you want to view all users or a specific user? [Press 1 for All users or 2 for Specific User] \n")
                 if user_search_choice == '1':
+                    clear()
                     Admin.view_users()
                 elif user_search_choice == '2':
-                    username = input("Enter the username to be searched: ")
-                    Admin.search_user(username)
+                    clear()
+                    try :
+                        username = input("Enter the username to be searched: ")
+                        if not username or username.isdigit():
+                            raise ValueError
+                    except ValueError:
+                        print("Incorrect Username Format!\n")
+                    except TypeError:
+                        print("Incorrect Username Type!\n")
+                    else:
+                        Admin.search_user(username)
                 else:
+                    clear()
                     print("Incorrect Input! Try Again!")
-                    return
+
             case '5':
+                clear()
                 return
+            case _:
+                clear()
+                print("Incorrect Input! Try Again\n")
+                continue
+
+
+
 def user_panel(username):
                  while True:
                   user_choice = input("|| Press 1 to view your details || Press 2 to View/Make Transactions || Press 3 to Change your password ||\n|| Press 4 to Log Out ||\n")
                   if user_choice == '1':
+                    clear()
                     Admin.search_user(username)
                   elif user_choice == '2':
+                    clear()
                     transactions_panel('user')
                   elif user_choice == '3':
-                    user_password_change = input("Enter the new password to be changed: ")
-                    Admin.update_user(username,user_password_change)
+                    clear()
+                    try :
+                        user_password_change = input("Enter the new password to be changed: ")
+                        if not user_password_change or not user_password_change:
+                            raise ValueError
+                    except ValueError:
+                        print("You input an incorrect password format!\n")
+                    except TypeError:
+                        print("You input and incorrect password format!\n")
+                    else:
+                        Admin.update_user(username,user_password_change)
                   elif user_choice == '4':
+                    clear()
                     return
+                  else:
+                      clear()
+                      print("Incorrect Input! Try Again!\n")
+                      continue
 def transactions_panel(check):
+    clear()
     match check:
         case 'admin':
-            admin_transaction_choice = input("|| Press 1 to view all transactions || Press 2 to delete all transactions || Press 3 to view specific transactions ||\n|| Press 4 to return ||")
+            clear()
+            admin_transaction_choice = input("|| Press 1 to view all transactions || Press 2 to delete all transactions || Press 3 to view specific transactions ||\n|| Press 4 to delete a users' transactions ||\n||  Press 5 to return ||")
             if admin_transaction_choice == '1':
+                clear()
                 Admin.view_all_transactions()
             elif admin_transaction_choice == '2':
-                Admin.delete_transactions()
+                clear()
+                confirm = input("Print 'Yes' to confirm! or  'No' to quit!\n")
+                if confirm == 'Yes':
+                    clear()
+                    Admin.delete_transactions()
+                elif confirm == 'No':
+                    return
+                elif confirm.isdigit() or not confirm:
+                    print("Enter 'Yes' or 'No' \n")
+                else:
+                    print("Incorrect Input!\n")
+
             elif admin_transaction_choice == '3':
-                username = input("Enter the username whose transactions you wish to search: ")
-                print(username.User.view_transactions())
+                clear()
+                try:
+                    username = input("Enter the username whose transactions you wish to search: ")
+                    if not username or username.isdigit():
+                        raise ValueError
+                except ValueError:
+                    print("You input an incorrect username format\n")
+                else:
+                    print(User.view_personal_transactions(username))
             elif admin_transaction_choice == '4':
+                clear()
+                try:
+                    username = input("Enter the username whose transactions you wish to delete!: ")
+                    if not username or username.isdigit():
+                        raise ValueError
+                except ValueError:
+                    print("Incorrect Username format entered!\n")
+                else:
+                    Admin.delete_user_transactions(username)
+            elif admin_transaction_choice == '5':
+                clear()
                 return
+            else:
+                clear()
+                print("Incorrect Input! Try Again!\n")
+
+
 
         case 'user':
+            clear()
             user_transaction_choice = input("|| Press 1 to deposit money || Press 2 to withdraw money || Press 3 to Transfer Funds to another user || Press 4 to view transactions || Press 5 to return ||\n")
-            if user_transaction_choice == '1':
-                deposit = int(input("Enter the amount to be deposited: "))
-                username_deposit = input("Enter your username to confirm: ")
-                User.add_transaction(username_deposit,deposit,'deposit')
-                return
-            elif user_transaction_choice == '2':
-                withdrawal = int(input("Enter the amount to be withdrawn: "))
-                username_withdrawal = input("Enter your username again to confirm: ")
-                User.add_transaction(username_withdrawal,withdrawal,'withdrawal')
-                return
-            elif user_transaction_choice == '3':
-                transfer = int(input("Enter the amount you wish to transfer: "))
-                from_username = input("Enter your username to confirm: ")
-                User.add_transaction(from_username,transfer,'transfer')
-                return
-            elif user_transaction_choice == '4':
-                username = input("Enter your username to confirm: ")
-                User.view_personal_transactions(username)
-                return
-            elif user_transaction_choice == '5':
-                return
+            try:
+                username_transaction = input("Enter your username to confirm: ")
+                if (not username_transaction)or (username_transaction.isdigit()):
+                    raise ValueError
+            except ValueError:
+                print("Incorrect Input!!\n")
+            except TypeError:
+                print("Username format is incorrect! \n")
+            else:
+                clear()
+                if user_transaction_choice == '1':
+                    clear()
+                    try:
+                        deposit = int(input("Enter the amount to be deposited: "))
+                    except TypeError:
+                        clear()
+                        print("You did not input in the correct format!\n ")
+                    except ValueError:
+                        clear()
+                        print("You did not input an amount!\n")
+                    else:
+                        clear()
+                        User.add_transaction(username_transaction,deposit,'deposit')
+                        return
 
+                elif user_transaction_choice == '2':
+                    clear()
+                    try:
+                        withdrawal = int(input("Enter the amount to be withdrawn: "))
+                    except TypeError:
+                        clear()
+                        print("You did not input information correctly!\n")
+                    except ValueError:
+                        clear()
+                        print("You did not input in the correct format!\n ")
+                    else:
+                        clear()
+                        User.add_transaction(username_transaction, withdrawal, 'withdrawal')
+                        return
+
+                elif user_transaction_choice == '3':
+                    clear()
+                    try:
+                        transfer = int(input("Enter the amount you wish to transfer: "))
+                    except TypeError:
+                         print("You did not input information correctly!\n")
+                    except ValueError:
+                        print("You did not input in the correct format!\n ")
+                    else:
+                        User.add_transaction(username_transaction,transfer, 'transfer')
+                        return
+
+                elif user_transaction_choice == '4':
+                    clear()
+                    User.view_personal_transactions(username_transaction)
+                    return
+
+                elif user_transaction_choice == '5':
+                    clear()
+                    return
+                else:
+
+                    clear()
+                    print("Incorrect Input! Try Again!\n")
 
 
 menu()

@@ -1,5 +1,3 @@
 user,balance_before,new_balance,amount_add/removed,transaction_type,transfer_from/to
 alisajid,3400.0,3700.0,300,deposit,
 alisajid,3700.0,3500.0,200,transfer,brucewayne
-brucewayne,7885643.0,7886099.0,456,deposit,
-brucewayne,7886099.0,7786099.0,100000,withdrawal,N/A
