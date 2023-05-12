@@ -1,4 +1,4 @@
-# atm_console_app
+# ATM Console App
 ------------
 Installation 
 ------------
